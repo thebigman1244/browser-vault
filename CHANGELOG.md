@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- Added an isolated Ubuntu desktop page with existing CPU/RAM, VPN, and lifetime controls.
+- Added live protection and download-monitoring dashboards, local ClamAV scanning, and explicit pending/error/limit states.
+- Added session-extension controls capped at 30 minutes, reconnect controls, and a confirmation before ending a session.
+- Retained disabled file/clipboard forwarding, private-network restrictions, and per-session disposal.
+
+
 ## 1.1.0 — Public source release
 
 - Publish the VM-backed Raspberry Pi deployment, launcher and session broker.

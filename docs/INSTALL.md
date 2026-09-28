@@ -196,3 +196,7 @@ systemctl is-active browser-vault-tunnel browser-vault-vm browser-vault-vm-firew
 6. Record the image digests, OS versions and test output privately. Remove staging copies of credentials from `/home/vault/stage` after checking that every target is in that directory; keep the root-only recovery configuration in a protected backup.
 
 Do not use suspicious content until these checks pass. A green launcher indicates a recent operational check, not an independent security audit.
+
+## Add the desktop and download monitor
+
+After completing and verifying the base installation, follow [Desktop and security pages](OPERATIONS.md#desktop-and-security-pages-12) to install the Ubuntu desktop image and local antivirus monitor. These components need additional disk space and scan memory. The launcher reports unavailable desktop profiles and unavailable scanning until those steps are complete.

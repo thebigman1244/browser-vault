@@ -5,7 +5,7 @@
 
 **A private browser VM, hosted on your Raspberry Pi.**
 
-Browser Vault gives you an interactive remote browser through a web page. Pick Chromium, Firefox or Brave, choose its CPU and memory limit, and open a fresh session. The Pi does the work; your laptop can be turned off when you are finished.
+Browser Vault gives you an interactive remote browser through a web page. Pick Chromium, Firefox, Brave or a full Ubuntu desktop, choose its CPU and memory limit, and open a fresh session. The Pi does the work; your laptop can be turned off when you are finished.
 
 The browsers run inside a dedicated Ubuntu virtual machine accelerated by KVM. Each session gets a disposable container inside that VM. Ending a session removes its container and temporary profile; the VM stays running for the next session.
 
@@ -14,7 +14,8 @@ The browsers run inside a dedicated Ubuntu virtual machine accelerated by KVM. E
 ## What you get
 
 - A full browser display with keyboard and mouse input, opened in its own tab.
-- Chromium, Firefox and Brave on ARM64.
+- Chromium, Firefox, Brave and a disposable Ubuntu desktop on ARM64.
+- A security dashboard with local antivirus scans, filename warnings and per-file results.
 - Three resource profiles, plus 5-, 15- or 30-minute session limits.
 - Smooth and Sharper display modes, automatic opening and reconnect controls.
 - Cloudflare Access sign-in for the launcher and browser display.
@@ -28,7 +29,7 @@ The browsers run inside a dedicated Ubuntu virtual machine accelerated by KVM. E
 | Balanced | 2 vCPU | 3 GiB |
 | Power | 3 vCPU | 4 GiB |
 
-One browser session runs at a time. Clipboard sharing, file transfer, shared folders, persistent profiles, webcam and microphone forwarding are disabled by the supplied configuration.
+One browser or desktop session runs at a time. Clipboard sharing, file transfer, shared folders, persistent profiles, webcam and microphone forwarding are disabled by the supplied configuration.
 
 ## How it fits together
 
@@ -47,7 +48,7 @@ flowchart LR
   VPN --> Internet[Public websites]
 ```
 
-The VM is an extra isolation boundary between the browser service and your Pi. It is persistent, rather than recreated for each visit. Browser Vault is purpose-built for remote browsing; it does not expose a general desktop or VM administration console.
+The VM is an extra isolation boundary between the browser service and your Pi. It is persistent, rather than recreated for each visit. The desktop page exposes a disposable workspace inside that VM. It does not grant administration access to the permanent VM or Pi.
 
 ## Hardware and services
 
@@ -84,7 +85,7 @@ The real-broker integration test, `tests/broker_integration.py`, uses a local HT
 
 ## Status and limits
 
-This is the first public source release of an existing Pi deployment. Automated checks cover authentication, API handling, protection-state decisions, configuration validation and the frontend build. The generalized installation procedure still needs a clean-device installation test. Hardware checks are provided separately and are not implied by a passing CI run.
+This source tree supports an existing Pi deployment. Automated checks cover authentication, API handling, protection-state decisions, configuration validation and the frontend build. The generalized installation procedure still needs a clean-device installation test. Hardware checks are provided separately and are not implied by a passing CI run.
 
 Browser Vault reduces exposure through layered isolation. It does not make a website trustworthy, guarantee protection against VM escapes, or provide an air gap. Do not use it as a substitute for a dedicated malware-analysis lab. Read the [security model](SECURITY.md) before exposing an installation.
 

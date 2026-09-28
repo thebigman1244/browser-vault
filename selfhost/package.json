@@ -6,7 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "test": "node --test auth.test.mjs api-response.test.mjs protection.test.mjs"
+    "test": "node --test auth.test.mjs api-response.test.mjs protection.test.mjs security.test.mjs"
   },
   "dependencies": {
     "jose": "6.2.12"

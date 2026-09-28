@@ -8,11 +8,12 @@ temporary = tempfile.TemporaryDirectory(prefix='browser-vault-test-')
 root = pathlib.Path(temporary.name)
 state = root/'state'; state.mkdir(mode=0o700)
 health = root/'health.json'
+security = root/'security.json'
 process = None
 
 def start_broker():
     global process
-    environment = dict(os.environ, VAULT_CONFIG=str(conf), VAULT_STATE=str(state), VAULT_HEALTH=str(health), VAULT_STATIC=str(project/'selfhost-dist'))
+    environment = dict(os.environ, VAULT_CONFIG=str(conf), VAULT_STATE=str(state), VAULT_HEALTH=str(health), VAULT_SECURITY=str(security), VAULT_STATIC=str(project/'selfhost-dist'))
     process = subprocess.Popen(['node', str(project/'selfhost/server.mjs')], env=environment, stdout=subprocess.DEVNULL)
 
 def stop_broker():
@@ -72,7 +73,7 @@ try:
     context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);context.load_cert_chain(root/'cert.pem',root/'key.pem')
     server.socket=context.wrap_socket(server.socket,server_side=True)
     threading.Thread(target=server.serve_forever,daemon=True).start()
-    config={'authMode':'key','accessKey':key,'port':8081,'allowedOrigins':['https://vault.example.com'],'isolationVerified':True,'kasmApiKey':'mock','kasmApiSecret':'mock','kasmUserId':'mock','kasmOrigin':'https://127.0.0.1:18444','kasmPublicOrigin':'https://view.example.com','kasmCertificate':str(root/'cert.pem'),'workspaces':{'chromium:balanced':{'id':'mock-workspace'}}}
+    config={'authMode':'key','accessKey':key,'port':8081,'allowedOrigins':['https://vault.example.com'],'isolationVerified':True,'kasmApiKey':'mock','kasmApiSecret':'mock','kasmUserId':'mock','kasmOrigin':'https://127.0.0.1:18444','kasmPublicOrigin':'https://view.example.com','kasmCertificate':str(root/'cert.pem'),'workspaces':{'chromium:balanced':{'id':'mock-workspace'},'desktop:balanced':{'id':'mock-desktop'}}}
     conf=root/'config.json';conf.write_text(json.dumps(config));conf.chmod(0o600)
     start_broker()
     ready()
@@ -100,6 +101,18 @@ try:
     restart_broker();ready()
     third=request('/api/status')[1]['session'];assert third['viewUrl']!=second['viewUrl']
     print('PASS bounded timers, safe display options, local-URL rejection, single session and refreshed display links',flush=True)
+    original=third['expiresAt']
+    assert request('/api/sessions/extend','POST',{})[1]['expiresAt']==original+300000
+    for _ in range(4): assert request('/api/sessions/extend','POST',{})[0]==200
+    assert request('/api/sessions/extend','POST',{})[0]==409
+    assert request('/api/security',authorized=False)[0]==401
+    assert request('/api/security/rescan','POST',{},origin='https://hostile.example')[0]==403
+    assert request('/api/security')[1]['downloads']['fresh'] is False
+    security.write_text(json.dumps({'version':1,'checkedAt':int(time.time()*1000),'sessionId':'isolated-test','state':'monitoring','files':[{'name':'sample.txt','sha256':'a'*64,'size':68,'status':'flagged','scannedAt':int(time.time()*1000),'findings':['Harmless test signature']}],'engine':{'available':True,'version':'test','definitionsFresh':True}}));security.chmod(0o644)
+    assert request('/api/security')[1]['downloads']['files'][0]['status']=='flagged'
+    assert request('/api/security/rescan','POST',{})[0]==202
+    assert (state/'scan-request.json').exists()
+    print('PASS security report, authenticated rescan, and bounded session extension',flush=True)
     asset=next((project/'selfhost-dist/assets').glob('*.js.gz')).with_suffix('')
     req=urllib.request.Request('http://127.0.0.1:8081/assets/'+asset.name,headers={'Accept-Encoding':'gzip'})
     with urllib.request.urlopen(req) as response:
@@ -110,6 +123,13 @@ try:
     restart_broker();ready()
     assert request('/api/status')[1]['session'] is None and not active
     print('PASS expired session removed after broker restart',flush=True)
+    set_health()
+    assert request('/api/sessions','POST',{**launch,'browser':'desktop'})[0]==201
+    assert requested['image_id']=='mock-desktop' and requested['kasm_url']=='about:blank'
+    assert request('/api/status')[1]['session']['browser']=='desktop'
+    for page in ('/desktop','/security'):
+        with urllib.request.urlopen('http://127.0.0.1:8081'+page) as response: assert response.status==200
+    print('PASS desktop workspace selection and direct page routes',flush=True)
     print('ALL_BROKER_INTEGRATION_CHECKS_PASSED',flush=True)
 finally:
     stop_broker()

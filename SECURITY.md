@@ -14,6 +14,12 @@ These controls do not guarantee containment of every browser, kernel, hypervisor
 
 A signed-in user receives pixels and sends input through the remote-display software, which is itself part of the attack surface. A trusted host administrator can access the guest and its data. Cloudflare and the VPN provider are external trust dependencies. The system is single-user and is not hardened as a hostile multi-tenant service.
 
+## Download monitoring
+
+Browser and desktop downloads are scanned from bounded snapshots of the session Downloads folder. ClamAV runs as an unprivileged, networkless user outside the session container; results and cached hashes are held outside the session. Downloads are never executed by the scanner or sent to third-party scanning services.
+
+This is detection, not prevention: files are not automatically quarantined and can be opened before a scan finishes. A no-detection result does not establish safety. Oversized, incomplete, encrypted, inaccessible or out-of-scope files may not be fully scanned. The dashboard shows skipped files, errors, stale reports, old definitions and resource deferrals. See [Operations](docs/OPERATIONS.md) for exact limits.
+
 ## Deployment requirements
 
 Keep host forwards on loopback. Do not publish Docker, SSH, Kasm administration or the broker directly to the Internet. Do not disable TLS verification, JWT validation, the VPN policy or protection checks to make a failing installation launch.

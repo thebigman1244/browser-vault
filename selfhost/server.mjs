@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { X509Certificate } from 'node:crypto';
 import { createAuthenticator } from './auth.mjs';
 import { readProtection } from './protection.mjs';
+import { readSecurity } from './security.mjs';
 import { websiteUrl, sessionMinutes, displaySettings } from './session-policy.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -66,7 +67,7 @@ const server=http.createServer(async(req,res)=>{
   if(!pathname.startsWith('/api/')){
     if(!['GET','HEAD'].includes(req.method))return send(res,405,{error:'Method not allowed.'});
     try{
-      const relative=decodeURIComponent(pathname)==='/'?'index.html':decodeURIComponent(pathname).slice(1);
+      const relative=['/','/desktop','/security'].includes(decodeURIComponent(pathname))?'index.html':decodeURIComponent(pathname).slice(1);
       const file=path.resolve(staticDir,relative);
       if(!file.startsWith(path.resolve(staticDir)+path.sep))return send(res,404,{error:'Not found.'});
       let data;
@@ -89,14 +90,20 @@ const server=http.createServer(async(req,res)=>{
     if(pathname==='/api/status'&&req.method==='GET'){
       if(!missing())await updateSession();
       const protection=await readProtection(healthFile);
-      return send(res,200,{ready:!missing()&&protection.ready,version:'1.1',protection,browsers:[...new Set(Object.keys(config.workspaces).map(k=>k.split(':')[0]))],profiles:Object.keys(config.workspaces),session:publicSession()});
+      return send(res,200,{ready:!missing()&&protection.ready,version:'1.2',protection,browsers:[...new Set(Object.keys(config.workspaces).map(k=>k.split(':')[0]))],profiles:Object.keys(config.workspaces),session:publicSession()});
+    }
+    if(pathname==='/api/security'&&req.method==='GET')return send(res,200,{protection:await readProtection(healthFile),downloads:await readSecurity(session?.id,process.env.VAULT_SECURITY)});
+    if(pathname==='/api/security/rescan'&&req.method==='POST'){
+      if(!session||session.state!=='running')throw new PublicError('Start a session before requesting a scan.',409);
+      await writeFile(path.join(stateDir,'scan-request.json'),JSON.stringify({requestedAt:Date.now()}),{mode:0o600});
+      return send(res,202,{queued:true,message:'Scan requested. The monitor checks for requests every 30 seconds.'});
     }
     if(missing())throw new PublicError('Complete the server setup and isolation checks before launching.',503);
     if(pathname==='/api/sessions'&&req.method==='POST'){
       await updateSession();if(session)throw new PublicError('End the current session before starting another.',409);
       const protection=await readProtection(healthFile);if(!protection.ready)throw new PublicError(protection.reason,503);
       const input=await body(req);const key=`${input.browser}:${input.profile}`;const workspace=config.workspaces[key];if(!workspace)throw new PublicError('That browser and resource profile are not installed.');
-      const target=validated(websiteUrl,input.url),minutes=validated(sessionMinutes,input.minutes),environment=validated(displaySettings,input.display);
+      const target=input.browser==='desktop'?'about:blank':validated(websiteUrl,input.url),minutes=validated(sessionMinutes,input.minutes),environment=validated(displaySettings,input.display);
       const startedAt=Date.now();
       const result=await kasm('request_kasm',{user_id:config.kasmUserId,image_id:workspace.id,enable_sharing:false,kasm_url:target,environment});
       if(!result.kasm_id)throw new Error('No session ID returned');
@@ -105,6 +112,12 @@ const server=http.createServer(async(req,res)=>{
     if(pathname==='/api/sessions/reconnect'&&req.method==='POST'){
       await updateSession(true);if(!session||session.state!=='running')throw new PublicError('No running session to reconnect to.',409);
       return send(res,200,publicSession());
+    }
+    if(pathname==='/api/sessions/extend'&&req.method==='POST'){
+      await updateSession();if(!session||session.state!=='running')throw new PublicError('No running session to extend.',409);
+      const deadline=Math.min(session.startedAt+30*60000,session.expiresAt+5*60000);
+      if(deadline<=session.expiresAt)throw new PublicError('This session already has the maximum 30-minute lifetime.',409);
+      session.expiresAt=deadline;await persist();return send(res,200,publicSession());
     }
     if(pathname==='/api/sessions'&&req.method==='DELETE'){
       if(session){try{await kasm('destroy_kasm',{user_id:config.kasmUserId,kasm_id:session.id});session.state='deleting';}catch(e){if(e.gone)session=null;else throw e;}await persist();}return send(res,202,{state:'deleting'});
