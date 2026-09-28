@@ -1,0 +1,14 @@
+{
+  "name": "browser-vault-server",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "test": "node --test auth.test.mjs api-response.test.mjs protection.test.mjs"
+  },
+  "dependencies": {
+    "jose": "6.2.12"
+  }
+}

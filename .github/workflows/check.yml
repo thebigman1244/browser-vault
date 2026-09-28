@@ -1,0 +1,28 @@
+name: Checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix selfhost ci --ignore-scripts
+      - run: npm test
+      - run: npm run build
+      - run: node scripts/package.mjs
+      - run: sudo env "PATH=$PATH" python3 tests/broker_integration.py
+      - run: python3 -m compileall -q pi-admin
+      - run: find pi-admin selfhost -name '*.sh' -exec bash -n {} \;
+      - run: python3 -m unittest discover -s tests -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-vault-install-bundles
+          path: dist/*.tar.gz

@@ -1,0 +1,10 @@
+{
+  "launcherOrigin": "https://vault.example.com",
+  "displayOrigin": "https://view.example.com",
+  "cloudflareAccess": {
+    "issuer": "https://your-team.cloudflareaccess.com",
+    "audience": "REPLACE_WITH_ACCESS_APPLICATION_AUD",
+    "email": "owner@example.com"
+  },
+  "privateProbeAddresses": ["192.168.1.10", "192.168.1.20", "192.168.1.1"]
+}
