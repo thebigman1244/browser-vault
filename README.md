@@ -1,5 +1,8 @@
 # Browser Vault
 
+[![Checks](https://github.com/thebigman1244/browser-vault/actions/workflows/check.yml/badge.svg)](https://github.com/thebigman1244/browser-vault/actions/workflows/check.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f6f55.svg)](LICENSE)
+
 **A private browser VM, hosted on your Raspberry Pi.**
 
 Browser Vault gives you an interactive remote browser through a web page. Pick Chromium, Firefox or Brave, choose its CPU and memory limit, and open a fresh session. The Pi does the work; your laptop can be turned off when you are finished.
